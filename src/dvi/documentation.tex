@@ -1,0 +1,245 @@
+% ---------------------------------------------------------
+%  PROJECT DOCUMENTATION (XeLaTeX SAFE VERSION)
+% ---------------------------------------------------------
+
+\documentclass[12pt,a4paper]{article}
+
+% ---------------------------------------------------------
+%  LANGUAGE (polyglossia must go BEFORE fontspec!)
+% ---------------------------------------------------------
+\usepackage{polyglossia}
+\setmainlanguage{russian}
+\setotherlanguage{english}
+
+% ---------------------------------------------------------
+%  FONTS (DejaVu has full Unicode support)
+% ---------------------------------------------------------
+\usepackage{fontspec}
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}
+
+% Unicode fallback for symbols (─ │ └ ← → etc.)
+\usepackage{ucharclasses}
+\setTransitionsForSymbols{\fontspec{DejaVu Sans Mono}}{}
+
+\defaultfontfeatures{Ligatures=TeX}
+
+% ---------------------------------------------------------
+%  PACKAGES
+% ---------------------------------------------------------
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\geometry{margin=2.5cm}
+\onehalfspacing
+
+% ---------------------------------------------------------
+%  CODE BLOCK STYLE
+% ---------------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    showstringspaces=false,
+    tabsize=2
+}
+
+% ---------------------------------------------------------
+%  DOCUMENT START
+% ---------------------------------------------------------
+\begin{document}
+
+% -------------------------------
+%   TITLE PAGE
+% -------------------------------
+\begin{titlepage}
+    \centering
+    {\Large \textbf{Tetris Game Project}}\\[10pt]
+    {\large Course: C Core + Makefiles + GCOV + Unit Testing}\\[10pt]
+    {\large Author: \textbf{Ivelissc}}\\[10pt]
+    {\large Date: \today}\\[40pt]
+    \vfill
+\end{titlepage}
+
+% -------------------------------
+%   TABLE OF CONTENTS
+% -------------------------------
+\tableofcontents
+\newpage
+
+% ---------------------------------------------------------
+\section{Overview}
+
+Данный документ описывает структуру, архитектуру и реализацию \textbf{проекта игры Тетрис}.
+Он включает в себя информацию о:
+
+\begin{itemize}
+    \item backend logic (game engine)
+    \item frontend (CLI interface)
+    \item Makefile structure
+    \item test suite
+    \item gcov/lcov coverage report
+    \item installation and distribution
+\end{itemize}
+
+Проект следует стилю кодирования S21 и использует модульную архитектуру.
+
+% ---------------------------------------------------------
+\section{Project Structure}
+
+\begin{lstlisting}
+project/
+|
++-- brick_game/
+|   +-- tetris/
+|       +-- backend.c
+|       +-- backend.h
+|       +-- figures.c
+|       +-- figures.h
+|
++-- gui/
+|   +-- cli/
+|       +-- main.c
+|       +-- frontend.c
+|       +-- frontend.h
+|
++-- tests/
+|   +-- test_tetris.c
+|
++-- Makefile
+\-- dvi/
+    \-- documentation.tex  <- this file
+\end{lstlisting}
+
+\section{State Machine Diagram}
+
+На рисунке ниже представлена диаграмма конечного автомата игры Тетрис.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{fsm_diagram.png}
+    \caption{Диаграмма конечного автомата игры}
+\end{figure}
+
+% ---------------------------------------------------------
+\section{Backend Architecture}
+
+Backend реализует основную игровую механику:
+
+\begin{itemize}
+    \item игровое поле;
+    \item текущая и следующая фигуры;
+    \item обработку ввода;
+    \item перемещение и вращение фигур;
+    \item уничтожение заполненных линий;
+    \item подсчёт очков и уровней;
+    \item завершение игры.
+\end{itemize}
+
+\subsection{Game State}
+
+\begin{lstlisting}[language=C]
+typedef struct {
+    int field[FIELD_HEIGHT][FIELD_WIDTH];
+    int current[NEXT_H][NEXT_W];
+    int next[NEXT_H][NEXT_W];
+    int score;
+    int high_score;
+    int level;
+    int speed;
+    bool paused;
+    long long last_tick_ms;
+    int cur_row;
+    int cur_col;
+    GameEngineState state;
+} InternalState;
+\end{lstlisting}
+
+% ---------------------------------------------------------
+\section{Frontend (CLI)}
+
+Отрисовка выполняется с помощью **ncurses** и включает:
+
+\begin{itemize}
+    \item игровое поле;
+    \item следующую фигуру;
+    \item счёт и уровень;
+    \item состояние паузы и конца игры.
+\end{itemize}
+
+% ---------------------------------------------------------
+\section{Makefile Structure}
+
+Цели Makefile:
+
+\begin{itemize}
+    \item \verb|all| - собрать игру
+    \item \verb|install| - установить бинарник и библиотеку
+    \item \verb|uninstall| - удалить из install dir
+    \item \verb|test| - запустить юнит-тесты
+    \item \verb|gcov_report| - получить отчёт покрытия
+    \item \verb|clean| - очистить build/
+    \item \verb|dist| - создать архив проекта
+    \item \verb|dvi| - собрать PDF-документацию
+\end{itemize}
+
+Пример цели dvi:
+
+\begin{lstlisting}[language=make]
+dvi:
+    mkdir -p dvi
+    xelatex -output-directory=dvi dvi/documentation.tex
+\end{lstlisting}
+
+% ---------------------------------------------------------
+\section{Unit Testing}
+
+Тестирование реализовано через библиотеку **Check**.
+Покрытие должно составлять не менее 80\%.
+
+\subsection{Пример теста}
+
+\begin{lstlisting}[language=C]
+START_TEST(init_1) {
+    initGame();
+    GameInfo_t gi = updateCurrentState();
+    ck_assert_int_eq(gi.score, 0);
+    closeGame();
+}
+END_TEST
+\end{lstlisting}
+
+% ---------------------------------------------------------
+\section{Game Mechanics}
+
+\begin{itemize}
+    \item вращение фигур;
+    \item перемещение по горизонтали;
+    \item ускорение падения (soft drop);
+    \item мгновенное падение (hard drop);
+    \item уничтожение заполненных линий;
+    \item спавн новой фигуры;
+    \item завершение игры при достижении верха поля.
+\end{itemize}
+
+\subsection{Управление}
+
+\begin{itemize}
+    \item left - движение влево
+    \item right - движение вправо
+    \item up - ускорение падения
+    \item Пробел - вращение
+    \item P - пауза
+    \item Q - выход
+\end{itemize}
+
+% ---------------------------------------------------------
+\end{document}
